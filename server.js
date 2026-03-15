@@ -99,11 +99,7 @@ function pubState(gs,rid){
 
 function advance(rid){
   const gs=GAME_STATES.get(rid); if(!gs) return;
-  const info=gs.hintersByTeam[gs.currentTeamId];
-  if(info){
-    info.hinterIdx=1-info.hinterIdx;
-    const t=TEAMS.get(gs.currentTeamId); if(t) t.hinterIdx=info.hinterIdx;
-  }
+  // NOTE: roles do NOT flip mid-word — they only flip in nextWord()
   gs.turnIdx++; gs.currentHint=null;
   if(gs.turnIdx>=gs.teamOrder.length){
     gs.roundNumber++; gs.turnIdx=0;
@@ -121,6 +117,13 @@ function nextWord(rid){
   const used=room.usedWordIds||[];
   const w=getNextWord(used,gs.settings.categories||null);
   if(w&&!used.includes(w.id)) room.usedWordIds=[...used,w.id];
+
+  // Flip hinter/guesser for ALL teams when a new word starts
+  for(const [teamId,info] of Object.entries(gs.hintersByTeam)){
+    info.hinterIdx=1-info.hinterIdx;
+    const t=TEAMS.get(teamId); if(t) t.hinterIdx=info.hinterIdx;
+  }
+
   gs.currentWord=w?w.word:'Unknown'; gs.currentWordId=w?w.id:null;
   gs.currentBannedWords=w?w.banned:[]; gs.currentHint=null;
   gs.roundNumber=1; gs.turnIdx=0; gs.currentTeamId=gs.teamOrder[0];
