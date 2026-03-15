@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Password"/>
+<meta name="theme-color" content="#7c3aed"/>
+<title>Password Game 🔐</title>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
+<style>
+/* ── Reset ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --p:#7c3aed;--pl:#a78bfa;--pd:#5b21b6;--pf:rgba(124,58,237,.15);
+  --pk:#db2777;--am:#d97706;--gn:#059669;--bl:#2563eb;--rd:#dc2626;--gd:#f59e0b;
+  --bg:#0f0a1e;--bg2:#150d2a;--bg3:#1e1438;--sf:#251848;--sf2:#2d1f5e;
+  --br:#362a6b;--br2:#4a3880;--tx:#f0eaff;--tx2:#c4b5fd;--mu:#9d8ec4;--mu2:#6b5ea0;
+  --r:14px;--rs:10px;--rl:22px;--rxl:28px;
+  --st:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px);
+  --sr:env(safe-area-inset-right,0px);
+}
+html{height:100%;overflow:hidden}
+body{
+  height:100%;overflow:hidden;position:fixed;width:100%;
+  background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Screens ───────────────────────────────────── */
+.screen{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+  padding-top:var(--st);padding-bottom:var(--sb);
+  padding-left:var(--sl);padding-right:var(--sr);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s ease,transform .22s ease;
+  transform:translateY(14px);
+  -webkit-overflow-scrolling:touch;
+}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0)}
+/* Game screen overrides — internal scroll only */
+#sg{overflow:hidden}
+.si{flex:1;display:flex;flex-direction:column;padding:20px 16px 32px;max-width:480px;margin:0 auto;width:100%}
+
+/* ── Text ──────────────────────────────────────── */
+h1{font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800;letter-spacing:-.5px;line-height:1.1}
+h2{font-size:1.35rem;font-weight:700}
+h3{font-size:.95rem;font-weight:700}
+p{line-height:1.6;color:var(--mu)}
+.grad{background:linear-gradient(140deg,var(--pl) 0%,#f0abfc 55%,var(--pk) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ── Buttons ───────────────────────────────────── */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:15px 20px;border:none;border-radius:var(--r);font-size:1rem;font-weight:700;
+  cursor:pointer;transition:transform .1s,opacity .1s,box-shadow .1s;
+  -webkit-appearance:none;outline:none;-webkit-user-select:none;user-select:none;letter-spacing:-.1px;
+}
+.btn:active{transform:scale(.96);opacity:.88}
+.btn:disabled{opacity:.35;pointer-events:none}
+.bp{background:linear-gradient(140deg,var(--p),var(--pd));color:#fff;box-shadow:0 4px 18px rgba(124,58,237,.38)}
+.bp:active{box-shadow:0 1px 6px rgba(124,58,237,.25)}
+.bs{background:var(--sf2);color:var(--tx);border:1.5px solid var(--br2)}
+.bd{background:#450a0a;color:#fca5a5;border:1.5px solid #991b1b}
+.bg{background:transparent;color:var(--mu);border:1.5px solid var(--br)}
+.bsm{padding:8px 13px;font-size:.8rem;border-radius:var(--rs);width:auto;gap:5px}
+.bxs{padding:6px 10px;font-size:.74rem;border-radius:8px;width:auto}
+
+/* ── Inputs ────────────────────────────────────── */
+.inp{
+  width:100%;padding:14px 15px;background:var(--sf);border:1.5px solid var(--br);
+  border-radius:var(--r);font-size:1rem;color:var(--tx);outline:none;
+  -webkit-appearance:none;transition:border-color .18s,box-shadow .18s;
+  -webkit-user-select:auto;
+}
+.inp:focus{border-color:var(--pl);box-shadow:0 0 0 3px rgba(167,139,250,.14)}
+.inp::placeholder{color:var(--mu2)}
+.inp.err{border-color:var(--rd)}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+.fld label{font-size:.76rem;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.6px}
+.emsg{color:#f87171;font-size:.8rem;min-height:1.1em}
+
+/* ── Cards ─────────────────────────────────────── */
+.card{background:var(--bg2);border:1.5px solid var(--br);border-radius:var(--r);padding:15px}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+
+/* ── Badges ────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;
+  font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.bga{background:#431407;color:#fcd34d}
+.bgp{background:#2e1065;color:var(--pl)}
+.bgr{background:#450a0a;color:#fca5a5}
+.bgg{background:#052e16;color:#86efac}
+
+/* ── Toast ─────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:calc(18px + var(--sb));left:50%;
+  transform:translateX(-50%) translateY(64px);
+  background:var(--bg3);border:1.5px solid var(--br2);border-radius:999px;
+  padding:10px 18px;font-size:.86rem;font-weight:600;color:var(--tx);
+  pointer-events:none;transition:transform .26s cubic-bezier(.34,1.56,.64,1),opacity .26s;
+  opacity:0;z-index:9999;white-space:nowrap;max-width:92vw;text-align:center;
+}
+#toast.on{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.ok{border-color:#166534;color:#86efac}
+#toast.er{border-color:#991b1b;color:#fca5a5}
+#toast.in{border-color:var(--br2);color:var(--tx2)}
+
+/* ── Connection Bar ────────────────────────────── */
+#cbar{
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  text-align:center;font-size:.78rem;font-weight:700;
+  padding:8px;padding-top:calc(8px + var(--st));
+  transform:translateY(-100%);transition:transform .3s;
+}
+#cbar.on{transform:translateY(0)}
+.cb-dc{background:#450a0a;color:#fca5a5}
+.cb-rc{background:#431407;color:#fcd34d}
+
+/* ── Overlays / Bottom Sheets ──────────────────── */
+.ov{
+  position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;z-index:800;
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.ov.open{opacity:1;pointer-events:all}
+.sheet{
+  background:var(--bg2);border-radius:var(--rxl) var(--rxl) 0 0;
+  padding:0 16px calc(24px + var(--sb));
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.34,1.1,.64,1);
+  -webkit-overflow-scrolling:touch;
+}
+.ov.open .sheet{transform:translateY(0)}
+.handle{width:36px;height:4px;background:var(--br2);border-radius:2px;margin:14px auto 18px}
+.sttl{font-size:1.15rem;font-weight:800;margin-bottom:3px}
+.ssub{font-size:.8rem;color:var(--mu);margin-bottom:15px}
+
+/* ── Confetti canvas ───────────────────────────── */
+#cfetti{position:fixed;inset:0;pointer-events:none;z-index:8888}
+
+/* ════════ LANDING ═════════════════════════════════ */
+#sl{background:radial-gradient(ellipse 130% 55% at 50% -5%,#3b1065 0%,var(--bg) 65%)}
+.hero{text-align:center;padding:52px 0 24px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hico{font-size:4.2rem;margin-bottom:2px;filter:drop-shadow(0 0 28px rgba(167,139,250,.45))}
+.htit{font-size:clamp(2.4rem,9vw,3.2rem);font-weight:900;letter-spacing:-1.5px;line-height:1}
+.hsub{margin-top:9px;font-size:.93rem;color:var(--mu)}
+.hact{display:flex;flex-direction:column;gap:9px;width:100%;margin-top:26px}
+.htag{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.htag span{font-size:.7rem;background:rgba(255,255,255,.04);border:1px solid var(--br);
+  padding:3px 9px;border-radius:999px;color:var(--mu)}
+
+/* ════════ CREATE / JOIN ════════════════════════════ */
+.brow{display:flex;align-items:center;padding:12px 0 6px}
+.bbtn{display:flex;align-items:center;gap:5px;color:var(--mu);font-size:.88rem;font-weight:600;
+  cursor:pointer;border:none;background:none;-webkit-appearance:none}
+.pgtit{margin:6px 0 22px}
+.howcard{margin-top:18px}
+.howcard h3{margin-bottom:7px;font-size:.88rem}
+.howcard p{font-size:.82rem;line-height:1.72}
+
+/* ════════ LOBBY ════════════════════════════════════ */
+.codecard{
+  text-align:center;padding:17px 14px;
+  background:linear-gradient(140deg,rgba(124,58,237,.2),rgba(219,39,119,.1));
+  border:1.5px solid var(--p);border-radius:var(--r);margin-bottom:15px;cursor:pointer;
+  transition:border-color .15s;-webkit-user-select:none;user-select:none;
+}
+.codecard:active{border-color:var(--pl)}
+.clbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--pl);margin-bottom:5px}
+.cval{font-size:clamp(2rem,8vw,2.5rem);font-weight:900;letter-spacing:.35em;color:#fff;
+  font-family:'SF Mono',ui-monospace,monospace;line-height:1}
+.csub{font-size:.74rem;color:var(--mu);margin-top:6px}
+.plist{display:flex;flex-direction:column;gap:6px}
+.pitem{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 13px;background:var(--sf);border:1px solid var(--br);border-radius:var(--rs)}
+.plft{display:flex;align-items:center;gap:8px}
+.pdot{width:8px;height:8px;border-radius:50%;background:var(--gn);flex-shrink:0}
+.pdot.off{background:var(--mu2)}
+.pname{font-weight:600;font-size:.91rem}
+.pyou{font-size:.66rem;color:var(--pl);font-weight:800;text-transform:uppercase;letter-spacing:.2px}
+.tgrid{display:flex;flex-direction:column;gap:8px;margin-top:3px}
+.tcard{border-radius:var(--rs);overflow:hidden;border:1.5px solid var(--br)}
+.thead{padding:9px 13px;display:flex;align-items:center;gap:7px;font-weight:700;font-size:.86rem}
+.tdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tplrs{padding:6px 13px 9px;display:flex;flex-direction:column;gap:4px}
+.tpr{display:flex;align-items:center;justify-content:space-between;font-size:.82rem}
+.rpill{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.2px;
+  padding:2px 7px;border-radius:999px;white-space:nowrap}
+.rph{background:#2e1065;color:#c4b5fd}
+.rpg{background:#172554;color:#93c5fd}
+.lbtns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+/* settings */
+.srow{display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-bottom:1px solid var(--br)}
+.srow:last-child{border-bottom:none}
+.slbl{font-size:.86rem;font-weight:600}
+.sdsc{font-size:.72rem;color:var(--mu);margin-top:1px}
+.tgl{position:relative;width:44px;height:25px;flex-shrink:0}
+.tgl input{opacity:0;width:0;height:0;position:absolute}
+.ttrack{position:absolute;inset:0;background:var(--sf);border:1.5px solid var(--br);
+  border-radius:999px;cursor:pointer;transition:.18s}
+.tgl input:checked+.ttrack{background:var(--p);border-color:var(--p)}
+.ttrack::after{content:'';position:absolute;width:17px;height:17px;border-radius:50%;
+  background:#fff;top:2px;left:2px;transition:.18s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.tgl input:checked+.ttrack::after{left:21px}
+.cpills{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.cpill{padding:6px 12px;border-radius:999px;font-size:.76rem;font-weight:700;
+  border:1.5px solid var(--br);background:var(--sf);color:var(--mu);
+  cursor:pointer;transition:all .13s;-webkit-user-select:none;user-select:none}
+.cpill.on{background:var(--p);border-color:var(--p);color:#fff}
+
+/* ════════ GAME SCREEN ══════════════════════════════ */
+/* Critical: game screen must not scroll — only g-body scrolls */
+#sg{background:var(--bg)}
+#sg .si{padding:0;max-width:100%;height:100%;min-height:0}
+.ghdr{
+  padding:9px 14px;padding-top:calc(9px + var(--st));
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg2);border-bottom:1px solid var(--br);
+  position:relative;z-index:20;flex-shrink:0;
+}
+.ghl{display:flex;align-items:center;gap:7px}
+.wctr{font-size:.73rem;color:var(--mu);font-weight:700}
+.rpil{padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800;
+  background:var(--sf);color:var(--pl);border:1px solid var(--br2)}
+.gbody{
+  flex:1;min-height:0;/* ← critical Safari fix */
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:13px 15px;padding-bottom:calc(18px + var(--sb));
+  display:flex;flex-direction:column;gap:11px;
+  max-width:480px;margin:0 auto;width:100%;
+}
+
+/* score strip */
+.sstrip{display:flex;gap:7px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:2px}
+.sstrip::-webkit-scrollbar{display:none}
+.stile{
+  flex-shrink:0;scroll-snap-align:start;
+  min-width:82px;padding:8px 10px;border-radius:var(--rs);
+  border:1.5px solid var(--br);background:var(--sf);text-align:center;
+  transition:border-color .2s,background .2s,box-shadow .2s;
+}
+.stile.cur{border-color:var(--p);background:var(--pf);box-shadow:0 0 12px rgba(124,58,237,.25)}
+.stn{font-size:.65rem;font-weight:700;color:var(--mu);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:74px}
+.stp{font-size:1.35rem;font-weight:900;color:var(--tx);line-height:1.1}
+
+/* round dots */
+.rdots{display:flex;align-items:center;justify-content:center;gap:5px}
+.rdot{width:9px;height:9px;border-radius:50%;background:var(--sf);border:2px solid var(--br);transition:all .28s}
+.rdot.dn{background:var(--gn);border-color:var(--gn)}
+.rdot.nw{background:var(--p);border-color:var(--p);box-shadow:0 0 7px rgba(124,58,237,.6)}
+.rdot.hf{background:var(--am);border-color:var(--am);box-shadow:0 0 7px rgba(217,119,6,.5)}
+.rlbl{font-size:.7rem;color:var(--mu);font-weight:600;margin-left:3px}
+
+/* turn banner */
+.tbanner{padding:12px 14px;border-radius:var(--r);
+  display:flex;align-items:center;gap:10px;
+  border:1.5px solid var(--br);background:var(--sf);transition:border-color .25s,background .25s}
+.tbanner.mine{background:var(--pf);border-color:var(--p);animation:gpulse 2s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.28)}50%{box-shadow:0 0 0 8px rgba(124,58,237,0)}}
+.tbico{font-size:1.6rem;flex-shrink:0;line-height:1}
+.tbi{flex:1;min-width:0}
+.tblbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--mu)}
+.tbname{font-size:.97rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbsub{font-size:.76rem;color:var(--mu2);margin-top:1px}
+
+/* secret word box */
+.sbox{
+  background:linear-gradient(140deg,var(--sf2),var(--bg3));
+  border:2px solid var(--p);border-radius:var(--r);padding:19px 14px;text-align:center;
+  box-shadow:0 0 24px rgba(124,58,237,.18);
+}
+.sblbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--pl);margin-bottom:7px}
+.sbword{
+  font-size:clamp(1.9rem,7.5vw,2.8rem);font-weight:900;letter-spacing:-.5px;line-height:1.1;
+  background:linear-gradient(140deg,#c4b5fd,#f0abfc);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.bnlist{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:10px}
+.btag{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d;
+  border-radius:6px;padding:3px 9px;font-size:.72rem;font-weight:700;
+  display:flex;align-items:center;gap:3px}
+.btag::before{content:'🚫';font-size:.6rem}
+
+/* hint display */
+.hbox{background:var(--bg2);border:1.5px solid var(--br2);border-radius:var(--r);padding:17px 14px;text-align:center}
+.hblbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--mu);margin-bottom:7px}
+.hbtxt{font-size:clamp(1.5rem,6.5vw,2rem);font-weight:900;color:var(--pl);line-height:1.15}
+.hbwait{color:var(--mu);font-style:italic;font-size:.92rem}
+
+/* submit area */
+.subarea{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.hint-helper{font-size:.74rem;color:var(--mu2);text-align:center;padding:2px 0}
+
+/* waiting dots */
+.wdots span{display:inline-block;animation:dbnce .8s ease-in-out infinite}
+.wdots span:nth-child(2){animation-delay:.16s}
+.wdots span:nth-child(3){animation-delay:.32s}
+@keyframes dbnce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* word-end card */
+.wecard{
+  background:var(--bg2);border:2px solid var(--p);border-radius:var(--rl);
+  padding:20px 14px;text-align:center;
+  animation:popin .28s cubic-bezier(.34,1.3,.64,1);
+}
+@keyframes popin{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.weemj{font-size:2.6rem;margin-bottom:5px;line-height:1}
+.weslbl{font-size:.68rem;color:var(--mu);text-transform:uppercase;letter-spacing:.5px}
+.weword{font-size:1.7rem;font-weight:900;color:var(--pl);margin:5px 0}
+.weres{font-size:.88rem;font-weight:700;margin-top:3px}
+.weok{color:#86efac}.weno{color:#fca5a5}
+.attlog{display:flex;flex-direction:column;gap:4px;margin-top:11px;max-height:175px;overflow-y:auto}
+.attrow{display:flex;align-items:center;gap:6px;padding:7px 9px;
+  border-radius:var(--rs);background:var(--sf);border:1px solid var(--br);font-size:.8rem}
+.attrnd{font-size:.66rem;color:var(--pl);font-weight:800;min-width:13px;text-align:center}
+.atttm{font-size:.68rem;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56px}
+.atth{color:var(--mu);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attg{font-weight:700;white-space:nowrap}
+.attok{color:#86efac}.attno{color:#fca5a5}
+
+/* ════════ END GAME ══════════════════════════════════ */
+#se{background:radial-gradient(ellipse 150% 50% at 50% -5%,#3b1065 0%,var(--bg) 55%)}
+.wcard{
+  text-align:center;padding:20px 14px;
+  background:linear-gradient(140deg,rgba(124,58,237,.2),rgba(219,39,119,.12));
+  border:2px solid var(--p);border-radius:var(--rl);margin-bottom:14px;
+  animation:popin .38s cubic-bezier(.34,1.3,.64,1);
+}
+.wcrown{font-size:2.8rem;margin-bottom:3px}
+.wclbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--mu)}
+.wcnm{
+  font-size:clamp(1.5rem,6.5vw,2.1rem);font-weight:900;margin-top:3px;
+  background:linear-gradient(140deg,#c4b5fd,#f9a8d4,#fcd34d);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.scard{background:var(--sf);border:1px solid var(--br);border-radius:var(--rs);padding:12px;text-align:center}
+.sv{font-size:1.8rem;font-weight:900;color:var(--pl)}
+.sl{font-size:.68rem;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
+.flist{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.frow{
+  display:flex;align-items:center;gap:9px;padding:11px 13px;
+  border-radius:var(--rs);background:var(--sf);border:1.5px solid var(--br);border-left-width:4px;
+}
+.frow.gd{border-color:var(--gd);background:rgba(245,158,11,.07)}
+.frank{font-size:1.2rem;line-height:1;width:24px;text-align:center;flex-shrink:0}
+.fnm{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpts{font-size:1.2rem;font-weight:900;color:var(--pl)}
+.fcor{font-size:.71rem;color:var(--mu)}
+
+/* ════════ LEADERBOARD SHEET ═══════════════════════ */
+.lbrow{
+  display:flex;align-items:center;gap:9px;padding:10px 11px;
+  border-radius:var(--rs);background:var(--sf);border:1.5px solid var(--br);
+  border-left-width:4px;margin-bottom:6px;
+}
+.lbrow.lbld{border-color:var(--gd);background:rgba(245,158,11,.07)}
+.lbrank{width:22px;font-size:1.05rem;text-align:center;flex-shrink:0}
+.lbnm{flex:1;font-weight:700;font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lbpts{font-size:1.1rem;font-weight:900;color:var(--pl)}
+
+/* ════════ TEAM EDITOR ════════════════════════════ */
+.teteam{background:var(--bg3);border:1.5px solid var(--br);border-radius:var(--r);padding:12px;margin-bottom:9px}
+.tehed{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.tenm{background:var(--sf);border:1px solid var(--br);border-radius:8px;
+  padding:7px 10px;color:var(--tx);font-size:.86rem;font-weight:700;width:100%;outline:none}
+.teprow{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 0;border-bottom:1px solid var(--br)}
+.teprow:last-of-type{border-bottom:none}
+.ubox{background:var(--sf);border:1px dashed var(--br);border-radius:var(--rs);padding:11px;margin-top:3px}
+
+/* ════════ UTILS ════════════════════════════════════ */
+.row{display:flex;align-items:center;gap:7px}
+.col{display:flex;flex-direction:column;gap:7px}
+.fx1{flex:1}
+.tc{text-align:center}
+.tm{color:var(--mu)}
+.tsm{font-size:.83rem}
+.mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}
+.mt14{margin-top:14px}.mt16{margin-top:16px}.mt20{margin-top:20px}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb14{margin-bottom:14px}
+.hr{height:1px;background:var(--br);margin:13px 0}
+.spin{width:26px;height:26px;border:2.5px solid var(--br);border-top-color:var(--p);
+  border-radius:50%;animation:rot .6s linear infinite;margin:0 auto}
+@keyframes rot{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- confetti canvas -->
+<canvas id="cfetti" style="display:none"></canvas>
+
+<div id="cbar"></div>
+<div id="toast"></div>
+
+<!-- ══════════ LANDING ═════════════════ -->
+<div class="screen active" id="sl">
+  <div class="si" style="justify-content:center">
+    <div class="hero">
+      <div class="hico">🔐</div>
+      <h1 class="htit grad">Password<br>Game</h1>
+      <p class="hsub">The party word game for groups of 2–8</p>
+      <div class="hact">
+        <button class="btn bp" onclick="goCreate()"><span>✨</span> Create a Room</button>
+        <button class="btn bs" onclick="goJoin()"><span>🎟️</span> Join with Code</button>
+      </div>
+      <div class="htag">
+        <span>2–8 players</span><span>Teams of 2</span><span>Real-time</span>
+        <span>🏆 Live scores</span><span>7 categories</span><span>PWA ready</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CREATE ROOM ═════════════ -->
+<div class="screen" id="sc">
+  <div class="si">
+    <div class="brow"><button class="bbtn" onclick="showScreen('sl')">← Back</button></div>
+    <h2 class="pgtit">Create a Room</h2>
+    <div class="fld">
+      <label>Your Name</label>
+      <input class="inp" id="crn" type="text" placeholder="Enter your name"
+        maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words"
+        onkeydown="if(event.key==='Enter')createRoom()"/>
+    </div>
+    <div class="emsg" id="cre"></div>
+    <button class="btn bp" id="crbtn" onclick="createRoom()" style="margin-top:4px">
+      <span>🚀</span> Create Room
+    </button>
+    <div class="card howcard">
+      <h3>How it works</h3>
+      <p>You'll get a 6-letter room code to share with friends. Once everyone joins, auto-assign teams and start the game. As host, you control when words advance and can end the game at any time.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ JOIN ROOM ══════════════ -->
+<div class="screen" id="sj">
+  <div class="si">
+    <div class="brow"><button class="bbtn" onclick="showScreen('sl')">← Back</button></div>
+    <h2 class="pgtit">Join a Room</h2>
+    <div class="fld">
+      <label>Room Code</label>
+      <input class="inp" id="jnc" type="text" placeholder="e.g. ABC123" maxlength="6"
+        autocomplete="off" autocorrect="off" autocapitalize="characters"
+        style="letter-spacing:.22em;font-size:1.4rem;font-weight:900;font-family:ui-monospace,monospace;text-transform:uppercase"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')Q('jnn').focus()"/>
+    </div>
+    <div class="fld">
+      <label>Your Name</label>
+      <input class="inp" id="jnn" type="text" placeholder="Enter your name"
+        maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words"
+        onkeydown="if(event.key==='Enter')joinRoom()"/>
+    </div>
+    <div class="emsg" id="jne"></div>
+    <button class="btn bp" id="jnbtn" onclick="joinRoom()" style="margin-top:4px">
+      <span>🎉</span> Join Game
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ LOBBY ══════════════════ -->
+<div class="screen" id="sob">
+  <div class="si">
+    <div class="codecard" onclick="shareCode()">
+      <div class="clbl">Room Code — Tap to Share</div>
+      <div class="cval" id="lcval">------</div>
+      <div class="csub">Share with friends 📋</div>
+    </div>
+
+    <div class="card mb12">
+      <div class="chd">
+        <h3>Players <span id="pcnt" class="badge bgp">0/8</span></h3>
+      </div>
+      <div class="plist" id="plist"></div>
+    </div>
+
+    <div class="card mb12">
+      <div class="chd">
+        <h3>Teams</h3>
+        <div class="row" style="gap:5px">
+          <button id="btnedit" class="btn bg bsm" onclick="openTeEditor()" style="display:none">✏️ Edit</button>
+          <button id="btnauto" class="btn bs bsm" onclick="doAuto()" style="display:none">🔀 Auto</button>
+        </div>
+      </div>
+      <div id="tarea"><p class="tm tsm">No teams yet. Press Auto-assign above.</p></div>
+    </div>
+
+    <!-- settings (owner only) -->
+    <div class="card mb12" id="setcard" style="display:none">
+      <h3 class="mb12">⚙️ Game Settings</h3>
+      <div class="srow">
+        <div><div class="slbl">Category Filter</div><div class="sdsc">Choose specific word categories</div></div>
+        <label class="tgl"><input type="checkbox" id="cattog" onchange="toggleCatF()"/><div class="ttrack"></div></label>
+      </div>
+      <div id="catarea" style="display:none;padding-top:6px">
+        <div class="cpills" id="cpills"></div>
+        <div class="tsm tm mt8" id="catnote">All categories (mixed)</div>
+      </div>
+    </div>
+
+    <div class="lbtns">
+      <button id="btnstart" class="btn bp" onclick="doStart()" style="display:none">🎮 Start Game</button>
+      <div id="wmsg" class="tc tm tsm" style="padding:8px;display:none">Waiting for host to start…</div>
+      <button class="btn bg" onclick="leaveRoom()">🚪 Leave Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ GAME ════════════════════ -->
+<div class="screen" id="sg">
+  <div class="si">
+    <!-- sticky header -->
+    <div class="ghdr">
+      <div class="ghl">
+        <span class="wctr" id="gwc">Word 1</span>
+        <span class="rpil" id="grp">Round 1</span>
+      </div>
+      <div class="row">
+        <button class="btn bg bsm" onclick="openLb()" style="padding:7px 11px">📊</button>
+        <button id="btnend" class="btn bd bsm" onclick="confirmEnd()" style="display:none">End</button>
+      </div>
+    </div>
+    <!-- scrollable body — min-height:0 is critical for Safari flex -->
+    <div class="gbody" id="gbody">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center">
+        <div class="spin"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ END GAME ═══════════════ -->
+<div class="screen" id="se">
+  <div class="si">
+    <div class="wcard">
+      <div class="wcrown">🏆</div>
+      <div class="wclbl">Winner</div>
+      <div class="wcnm" id="ewnm">—</div>
+    </div>
+    <div class="sgrid">
+      <div class="scard"><div class="sv" id="stwords">0</div><div class="sl">Words Played</div></div>
+      <div class="scard"><div class="sv" id="stcorr">0</div><div class="sl">Correct Guesses</div></div>
+    </div>
+    <h3 class="mb12">Final Standings</h3>
+    <div class="flist" id="flist"></div>
+    <div class="col">
+      <button class="btn bp" onclick="playAgain()">🔄 Play Again</button>
+      <button class="btn bg" onclick="showScreen('sl')">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LEADERBOARD SHEET ══════ -->
+<div class="ov" id="lbov" onclick="closeLb(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="sttl">📊 Leaderboard</div>
+    <div class="ssub">Live scores — updated every word</div>
+    <div id="lbcont"></div>
+    <button class="btn bg mt12" onclick="closeLb()">Close</button>
+  </div>
+</div>
+
+<!-- ══════════ TEAM EDITOR SHEET ══════ -->
+<div class="ov" id="teov" onclick="closeTeEditor(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="sttl">✏️ Edit Teams</div>
+    <div class="ssub">Each team needs exactly 2 players</div>
+    <div id="tecont"></div>
+    <div class="col mt14">
+      <button class="btn bp" onclick="saveTeams()">✅ Save Teams</button>
+      <button class="btn bg" onclick="closeTeEditor()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  GLOBAL STATE
+// ═══════════════════════════════════════════════════════
+const G = {
+  sk: null,
+  pid: null, pnm: null, rid: null, rc: null, own: false,
+  lob: null,   // lobby state {room,players,teams}
+  gs: null,    // game state (public)
+  pwd: null,   // private word data (hinter only)
+  cats: [],    // selected categories
+  te: [],      // team editor draft
+};
+
+// ═══════════════════════════════════════════════════════
+//  SCREENS
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById(id);
+  if (t) t.classList.add('active');
+}
+function goCreate() {
+  clearErrs(); showScreen('sc');
+  setTimeout(() => Q('crn').focus(), 200);
+}
+function goJoin() {
+  clearErrs(); showScreen('sj');
+  setTimeout(() => Q('jnc').focus(), 200);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SOCKET
+// ═══════════════════════════════════════════════════════
+function initSocket() {
+  if (G.sk?.connected) return;
+  if (G.sk) { G.sk.connect(); return; }
+
+  G.sk = io({ transports: ['websocket', 'polling'], reconnectionDelay: 1000, reconnectionAttempts: 25 });
+  const sk = G.sk;
+
+  sk.on('connect', () => {
+    hideCBar();
+    const sess = loadSess();
+    if (sess?.rid) {
+      sk.emit('join_room', { roomCode: sess.rc, playerName: sess.pnm, playerId: sess.pid }, res => {
+        if (!res?.error) applyJoin(res);
+      });
+    }
+  });
+  sk.on('disconnect',   () => showCBar('cb-dc', '⚠️ Disconnected — reconnecting…'));
+  sk.on('reconnecting', () => showCBar('cb-rc', '🔄 Reconnecting…'));
+  sk.on('reconnect',    () => hideCBar());
+
+  sk.on('room_state',       d => { G.lob = d; renderLobby(d); });
+  sk.on('settings_updated', d => { G.cats = d.categories || []; });
+  sk.on('player_joined',    d => toast(`${d.playerName} joined! 👋`, 'ok'));
+  sk.on('player_disconnected', () => {});
+
+  sk.on('game_started', () => {
+    G.pwd = null;
+    showScreen('sg');
+    if (G.own) Q('btnend').style.display = '';
+    toast('🎮 Game started!', 'ok');
+    renderGame();
+  });
+
+  sk.on('game_state', gs => { G.gs = gs; renderGame(); });
+
+  sk.on('private_word_data', d => { G.pwd = d; renderGame(); });
+
+  sk.on('hint_submitted',     d => toast(`💡 Hint: "${d.hint}"`, 'in'));
+  sk.on('wrong_guess',        d => toast(`❌ Wrong: "${d.guess}"`, 'er'));
+  sk.on('your_turn_to_guess', d => toast(`🎯 Your turn! Hint: "${d.hint}"`, 'ok'));
+
+  sk.on('game_ended', data => {
+    buildEndScreen(data);
+    showScreen('se');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  SESSION
+// ═══════════════════════════════════════════════════════
+function saveSess(d) { try { localStorage.setItem('pg3', JSON.stringify(d)); } catch(e){} }
+function loadSess()  { try { return JSON.parse(localStorage.getItem('pg3') || 'null'); } catch(e){ return null; } }
+function clrSess()   { try { localStorage.removeItem('pg3'); } catch(e){} }
+function applyJoin(r) {
+  G.pid = r.playerId; G.pnm = r.playerName;
+  G.rid = r.roomId;   G.rc  = r.roomCode;
+  G.own = !!r.isOwner;
+  saveSess({ pid: r.playerId, pnm: r.playerName, rid: r.roomId, rc: r.roomCode });
+}
+
+// ═══════════════════════════════════════════════════════
+//  CREATE / JOIN
+// ═══════════════════════════════════════════════════════
+function createRoom() {
+  const nm = Q('crn').value.trim();
+  if (!nm) { setErr('cre', 'Please enter your name'); return; }
+  initSocket();
+  setLd('crbtn', true, 'Creating…');
+  G.sk.emit('create_room', { playerName: nm }, res => {
+    setLd('crbtn', false, '<span>🚀</span> Create Room');
+    if (res.error) { setErr('cre', res.error); return; }
+    applyJoin(res); setupLobby(); showScreen('sob');
+  });
+}
+
+function joinRoom() {
+  const code = Q('jnc').value.trim().toUpperCase();
+  const nm   = Q('jnn').value.trim();
+  if (code.length !== 6) { setErr('jne', 'Enter the 6-character room code'); return; }
+  if (!nm)               { setErr('jne', 'Please enter your name'); return; }
+  initSocket();
+  setLd('jnbtn', true, 'Joining…');
+  G.sk.emit('join_room', { roomCode: code, playerName: nm }, res => {
+    setLd('jnbtn', false, '<span>🎉</span> Join Game');
+    if (res.error) { setErr('jne', res.error); return; }
+    applyJoin(res); setupLobby(); showScreen('sob');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOBBY
+// ═══════════════════════════════════════════════════════
+function setupLobby() {
+  Q('lcval').textContent = G.rc;
+  if (G.own) {
+    Q('btnauto').style.display = '';
+    Q('btnedit').style.display = '';
+    Q('btnstart').style.display = '';
+    Q('setcard').style.display = '';
+    Q('wmsg').style.display = 'none';
+    buildCatPills();
+  } else {
+    Q('btnstart').style.display = 'none';
+    Q('wmsg').style.display = '';
+  }
+}
+
+function shareCode() {
+  const text = `Join my Password Game! Room code: ${G.rc}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Password Game', text }).catch(() => {});
+  } else if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(G.rc).then(() => toast('Copied! ' + G.rc + ' 📋', 'ok'));
+  } else {
+    toast(G.rc + ' — code copied!', 'ok');
+  }
+}
+
+function renderLobby(d) {
+  const { room, players, teams } = d;
+  const conn = players.filter(p => p.isConnected);
+
+  Q('pcnt').textContent = `${conn.length}/8`;
+
+  // Players
+  Q('plist').innerHTML = conn.length === 0
+    ? '<div class="tc tm tsm" style="padding:11px">Waiting for players to join…</div>'
+    : conn.map(p => `
+      <div class="pitem">
+        <div class="plft">
+          <div class="pdot ${p.isConnected ? '' : 'off'}"></div>
+          <span class="pname">${esc(p.name)}</span>
+          ${p.id === G.pid ? '<span class="pyou">You</span>' : ''}
+        </div>
+        <div class="row">
+          ${p.id === room?.ownerId ? '<span class="badge bga">Host</span>' : ''}
+        </div>
+      </div>`).join('');
+
+  // Teams
+  const ta = Q('tarea');
+  if (!teams || teams.length === 0) {
+    ta.innerHTML = '<p class="tm tsm">No teams yet. Press Auto-assign above.</p>';
+  } else {
+    ta.innerHTML = '<div class="tgrid">' + teams.map(team => {
+      const tp = players.filter(p => p.teamId === team.id);
+      const hi = team.hinterIdx || 0;
+      return `<div class="tcard">
+        <div class="thead" style="background:${hrb(team.color,.17)}">
+          <div class="tdot" style="background:${team.color}"></div>
+          <span>${esc(team.name)}</span>
+          ${tp.length < 2 ? '<span class="badge bgr" style="margin-left:auto;font-size:.6rem">Needs 2</span>' : ''}
+        </div>
+        <div class="tplrs">
+          ${tp.length === 0 ? '<p class="tm tsm">Empty</p>' : tp.map((p,i) => `
+            <div class="tpr">
+              <span>${esc(p.name)}${p.id===G.pid?' <span class="pyou">you</span>':''}</span>
+              <span class="rpill ${i===hi?'rph':'rpg'}">${i===hi?'💡 Hinter':'🎯 Guesser'}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  // Validate start button
+  if (G.own) {
+    const canStart = teams.length >= 1
+      && teams.every(t => players.filter(p => p.teamId === t.id).length >= 2)
+      && conn.length >= 2;
+    Q('btnstart').disabled = !canStart;
+  }
+
+  // Update odd-player warning
+  const oddWarning = Q('oddwarn');
+  if (conn.length % 2 !== 0 && conn.length > 1 && G.own) {
+    if (!oddWarning) {
+      const el = document.createElement('p');
+      el.id = 'oddwarn';
+      el.className = 'tc tsm';
+      el.style.cssText = 'color:#fcd34d;padding:5px 0';
+      el.textContent = '⚠️ Odd number of players — one will be benched when teams are assigned';
+      Q('tarea').appendChild(el);
+    }
+  } else {
+    if (oddWarning) oddWarning.remove();
+  }
+}
+
+function doAuto() {
+  G.sk.emit('auto_assign_teams', { roomId: G.rid }, res => {
+    if (res?.error) toast(res.error, 'er');
+    else toast('🔀 Teams assigned!', 'ok');
+  });
+}
+
+function leaveRoom() {
+  clrSess();
+  if (G.sk) G.sk.disconnect();
+  G.sk = null; G.pid = null; G.pnm = null; G.rid = null; G.rc = null;
+  G.own = false; G.gs = null; G.pwd = null;
+  showScreen('sl');
+}
+
+// ─── Category settings ───────────────────────────────
+const CATS = [
+  { id:'football',   lb:'⚽ Football'   },
+  { id:'cricket',    lb:'🏏 Cricket'    },
+  { id:'politics',   lb:'🏛️ Politics'   },
+  { id:'gen-z',      lb:'✨ Gen-Z'      },
+  { id:'internet',   lb:'🌐 Internet'   },
+  { id:'tech',       lb:'💻 Tech'       },
+  { id:'popculture', lb:'🎬 Pop Culture'},
+];
+
+function buildCatPills() {
+  Q('cpills').innerHTML = CATS.map(c =>
+    `<div class="cpill" data-c="${c.id}" onclick="toggleCat('${c.id}')">${c.lb}</div>`
+  ).join('');
+}
+
+function toggleCatF() {
+  const on = Q('cattog').checked;
+  Q('catarea').style.display = on ? '' : 'none';
+  if (!on) { G.cats = []; updateCatPills(); pushSettings(null); }
+}
+
+function toggleCat(id) {
+  const i = G.cats.indexOf(id);
+  if (i >= 0) G.cats.splice(i, 1); else G.cats.push(id);
+  updateCatPills();
+  pushSettings(G.cats.length > 0 ? [...G.cats] : null);
+}
+
+function updateCatPills() {
+  document.querySelectorAll('.cpill').forEach(p => p.classList.toggle('on', G.cats.includes(p.dataset.c)));
+  const n = Q('catnote');
+  if (n) n.textContent = G.cats.length === 0
+    ? 'All categories (mixed)'
+    : `${G.cats.length} categor${G.cats.length>1?'ies':'y'} selected`;
+}
+
+function pushSettings(cats) {
+  G.sk.emit('update_settings', { roomId: G.rid, settings: { categories: cats } });
+}
+
+function doStart() {
+  Q('btnstart').disabled = true;
+  G.sk.emit('start_game', { roomId: G.rid }, res => {
+    Q('btnstart').disabled = false;
+    if (res?.error) toast(res.error, 'er');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME RENDER
+// ═══════════════════════════════════════════════════════
+function renderGame() {
+  const gs = G.gs;
+  if (!gs) {
+    Q('gbody').innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center"><div class="spin"></div></div>';
+    return;
+  }
+
+  // Header labels
+  Q('gwc').textContent = `Word ${gs.wordNumber}`;
+  Q('grp').textContent = gs.phase === 'word_end' ? 'Done'
+    : gs.roundNumber === 3 ? '⭐ Final'
+    : `Round ${gs.roundNumber}/3`;
+
+  if (gs.phase === 'word_end') { renderWordEnd(gs); return; }
+
+  const amH  = G.pid === gs.activeHinterId;
+  const amG  = G.pid === gs.activeGuesserId;
+  const myT  = myTeam(gs);
+  const isMe = myT && gs.currentTeamId === myT.id;
+  const curT = (gs.teams||[]).find(t => t.id === gs.currentTeamId);
+  const rol  = gs.teamRoles?.[gs.currentTeamId] || {};
+
+  // ── Score strip ──────────────────────────────────────
+  const scoreH = (gs.teams||[]).map(t => {
+    const sc = gs.teamScores[t.id]||{};
+    return `<div class="stile ${t.id===gs.currentTeamId?'cur':''}"
+      style="${t.id===gs.currentTeamId?`border-color:${t.color}`:''}">
+      <div class="stn">${esc(t.name)}</div>
+      <div class="stp">${fmtPts(sc.score||0)}</div>
+    </div>`;
+  }).join('');
+
+  // ── Round dots ───────────────────────────────────────
+  const dotsH = [1,2,3].map(r => {
+    let c = 'rdot';
+    if (r < gs.roundNumber) c += ' dn';
+    else if (r === gs.roundNumber && r === 3) c += ' hf';
+    else if (r === gs.roundNumber) c += ' nw';
+    return `<div class="${c}"></div>`;
+  }).join('');
+  const roundDesc = gs.roundNumber === 3 ? '⭐ Final — 0.5 pts' : `Round ${gs.roundNumber} of 3 — 1 pt`;
+
+  // ── Turn banner ──────────────────────────────────────
+  let bannerH = '';
+  if (amH && gs.phase === 'hint') {
+    bannerH = `<div class="tbanner mine">
+      <span class="tbico">💡</span>
+      <div class="tbi">
+        <div class="tblbl">Your turn to hint</div>
+        <div class="tbname">Give one single word</div>
+        <div class="tbsub">No banned words. Cannot say the password itself.</div>
+      </div>
+    </div>`;
+  } else if (amG && gs.phase === 'guess') {
+    bannerH = `<div class="tbanner mine">
+      <span class="tbico">🎯</span>
+      <div class="tbi">
+        <div class="tblbl">Your turn to guess!</div>
+        <div class="tbname">What's the password?</div>
+        <div class="tbsub">Hint: <strong style="color:var(--pl)">${esc(gs.currentHint||'…')}</strong></div>
+      </div>
+    </div>`;
+  } else if (isMe) {
+    bannerH = `<div class="tbanner" style="border-color:${curT?.color||'var(--br)'}">
+      <span class="tbico">⏳</span>
+      <div class="tbi">
+        <div class="tblbl">Your team's turn</div>
+        <div class="tbname">${esc(rol.hinterName||'?')} → ${esc(rol.guesserName||'?')}</div>
+        <div class="tbsub">${gs.phase === 'hint' ? 'Waiting for hint…' : 'Guessing…'}</div>
+      </div>
+    </div>`;
+  } else {
+    bannerH = `<div class="tbanner">
+      <span class="tbico">👀</span>
+      <div class="tbi">
+        <div class="tblbl">${esc(curT?.name||'Team')}'s turn</div>
+        <div class="tbname">${esc(rol.hinterName||'?')} → ${esc(rol.guesserName||'?')}</div>
+        <div class="tbsub">${gs.phase === 'hint' ? 'Writing hint…' : 'Guessing…'}</div>
+      </div>
+    </div>`;
+  }
+
+  // ── Main role view ───────────────────────────────────
+  let mainH = '';
+
+  if (amH && gs.phase === 'hint') {
+    // HINTER VIEW
+    const pw = G.pwd;
+    if (!pw) {
+      mainH = `<div class="sbox">
+        <div class="sblbl">Loading your word</div>
+        <div class="wdots" style="font-size:1.8rem;color:var(--pl)"><span>·</span><span>·</span><span>·</span></div>
+      </div>`;
+    } else {
+      mainH = `
+        <div class="sbox">
+          <div class="sblbl">🔐 The Password Is</div>
+          <div class="sbword">${esc(pw.word)}</div>
+          <div style="margin-top:9px;font-size:.68rem;color:var(--mu);font-weight:600">CANNOT use these words:</div>
+          <div class="bnlist">${pw.bannedWords.map(b=>`<div class="btag">${esc(b)}</div>`).join('')}</div>
+        </div>
+        <div class="subarea">
+          <div class="fld" style="margin:0">
+            <label>Your Hint — one word only</label>
+            <input class="inp" id="hinp" type="text" placeholder="e.g. Goalkeeper, Rules, Referee…"
+              maxlength="30" autocomplete="off" autocorrect="off" autocapitalize="off"
+              onkeydown="if(event.key==='Enter')doHint()"/>
+          </div>
+          <div class="hint-helper">💡 Single word only · No spaces · No banned words</div>
+          <button class="btn bp" onclick="doHint()">💡 Submit Hint</button>
+        </div>`;
+    }
+  } else if (amG) {
+    // GUESSER VIEW
+    if (gs.phase === 'hint') {
+      mainH = `
+        <div class="hbox">
+          <div class="hblbl">Waiting for Hint</div>
+          <div class="hbwait">${esc(rol.hinterName||'Hinter')} is writing <span class="wdots"><span>·</span><span>·</span><span>·</span></span></div>
+        </div>
+        <p class="tc tm tsm" style="padding:4px">Your hint will appear here when ready</p>`;
+    } else {
+      mainH = `
+        <div class="hbox">
+          <div class="hblbl">💡 The Hint Is</div>
+          <div class="hbtxt">${esc(gs.currentHint||'—')}</div>
+        </div>
+        <div class="subarea">
+          <div class="fld" style="margin:0">
+            <label>Your Guess</label>
+            <input class="inp" id="ginp" type="text" placeholder="What's the password?"
+              maxlength="40" autocomplete="off" autocorrect="off" autocapitalize="off"
+              onkeydown="if(event.key==='Enter')doGuess()"/>
+          </div>
+          <button class="btn bp" onclick="doGuess()">🎯 Submit Guess</button>
+        </div>`;
+    }
+  } else {
+    // SPECTATOR VIEW
+    if (gs.phase === 'hint') {
+      mainH = `
+        <div class="hbox">
+          <div class="hblbl">Status</div>
+          <div class="hbwait">${esc(rol.hinterName||'Hinter')} is writing <span class="wdots"><span>·</span><span>·</span><span>·</span></span></div>
+        </div>
+        <p class="tc tm tsm" style="padding:4px">${isMe?'':'Watch and wait — your turn is coming!'}</p>`;
+    } else {
+      mainH = `
+        <div class="hbox">
+          <div class="hblbl">💡 Current Hint</div>
+          <div class="hbtxt">${esc(gs.currentHint||'—')}</div>
+        </div>
+        <p class="tc tm tsm" style="padding:4px">${esc(rol.guesserName||'Guesser')} is guessing <span class="wdots"><span>·</span><span>·</span><span>·</span></span></p>`;
+    }
+  }
+
+  Q('gbody').innerHTML = `
+    <div class="sstrip">${scoreH}</div>
+    <div class="rdots">${dotsH}<span class="rlbl">${roundDesc}</span></div>
+    ${bannerH}
+    ${mainH}
+  `;
+
+  // Auto-focus inputs
+  const hi = document.getElementById('hinp');
+  const gi = document.getElementById('ginp');
+  if (hi) setTimeout(() => hi.focus(), 120);
+  if (gi) setTimeout(() => gi.focus(), 120);
+}
+
+function renderWordEnd(gs) {
+  const rd = gs.resultData || {};
+  const wt = (gs.teams||[]).find(t => t.id === rd.winnerTeamId);
+
+  const scoreH = (gs.teams||[]).map(t => {
+    const sc = gs.teamScores[t.id]||{};
+    return `<div class="stile ${t.id===rd.winnerTeamId?'cur':''}">
+      <div class="stn">${esc(t.name)}</div>
+      <div class="stp">${fmtPts(sc.score||0)}</div>
+    </div>`;
+  }).join('');
+
+  const attH = (rd.attempts||[]).map(a => {
+    const at = (gs.teams||[]).find(t=>t.id===a.teamId);
+    return `<div class="attrow">
+      <span class="attrnd">${a.roundNumber}</span>
+      <span class="atttm">${esc(at?.name||'?')}</span>
+      <span class="atth">💡 ${esc(a.hint||'—')}</span>
+      <span class="attg ${a.correct?'attok':'attno'}">${a.correct?'✅':'❌'} ${esc(a.guess||'—')}</span>
+    </div>`;
+  }).join('');
+
+  Q('gbody').innerHTML = `
+    <div class="sstrip">${scoreH}</div>
+    <div class="wecard">
+      <div class="weemj">${rd.correct?'🎉':'😅'}</div>
+      <div class="weslbl">The password was</div>
+      <div class="weword">${esc(rd.word||'?')}</div>
+      ${rd.correct
+        ? `<div class="weres weok">✨ ${esc(wt?.name||'Someone')} got it! +${rd.points} pt${rd.points!==1?'s':''}</div>`
+        : `<div class="weres weno">Nobody guessed it this round 😬</div>`}
+      ${attH ? `<div class="attlog">${attH}</div>` : ''}
+    </div>
+    ${G.own
+      ? `<button class="btn bp" onclick="doNextWord()">➡️ Next Word</button>`
+      : `<p class="tc tm tsm" style="padding:9px">Waiting for host to continue…</p>`}
+  `;
+
+  // Fire confetti on correct guess
+  if (rd.correct) confetti();
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME ACTIONS
+// ═══════════════════════════════════════════════════════
+function doHint() {
+  const inp = document.getElementById('hinp');
+  const h   = (inp?.value||'').trim();
+  if (!h) { toast('Enter a hint first', 'er'); return; }
+  if (h.includes(' ')) { toast('Hint must be ONE word — no spaces!', 'er'); inp.classList.add('err'); return; }
+  inp?.classList.remove('err');
+  G.sk.emit('submit_hint', { hint: h }, res => {
+    if (res?.error) { toast(res.error, 'er'); inp?.classList.add('err'); }
+    else if (inp)   { inp.value = ''; inp.classList.remove('err'); }
+  });
+}
+
+function doGuess() {
+  const inp = document.getElementById('ginp');
+  const g   = (inp?.value||'').trim();
+  if (!g) { toast('Enter your guess', 'er'); return; }
+  G.sk.emit('submit_guess', { guess: g }, res => {
+    if (res?.error) { toast(res.error, 'er'); return; }
+    if (inp) inp.value = '';
+  });
+}
+
+function doNextWord() {
+  G.sk.emit('next_word', { roomId: G.rid }, res => {
+    if (res?.error) toast(res.error, 'er');
+  });
+}
+
+function confirmEnd() {
+  if (confirm('End the game now?\nFinal scores will be shown to everyone.')) {
+    G.sk.emit('end_game', { roomId: G.rid }, res => {
+      if (res?.error) toast(res.error, 'er');
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════════════════════════════
+function openLb() {
+  const gs = G.gs;
+  if (!gs) return;
+  const sorted = [...(gs.teams||[])].sort((a,b) => (gs.teamScores[b.id]?.score||0) - (gs.teamScores[a.id]?.score||0));
+  const medals = ['🥇','🥈','🥉'];
+  Q('lbcont').innerHTML = sorted.map((t,i) => {
+    const sc = gs.teamScores[t.id]||{};
+    return `<div class="lbrow ${i===0?'lbld':''}" style="border-left-color:${t.color}">
+      <span class="lbrank">${medals[i]||i+1}</span>
+      <span class="lbnm">${esc(t.name)}</span>
+      <div style="text-align:right">
+        <div class="lbpts">${fmtPts(sc.score||0)} pts</div>
+        <div style="font-size:.68rem;color:var(--mu)">${sc.correct||0} correct</div>
+      </div>
+    </div>`;
+  }).join('');
+  Q('lbov').classList.add('open');
+}
+
+function closeLb(e) {
+  if (e && e.target !== Q('lbov')) return;
+  Q('lbov').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TEAM EDITOR
+// ═══════════════════════════════════════════════════════
+function openTeEditor() {
+  if (!G.lob) return;
+  const { players, teams } = G.lob;
+  G.te = teams.map(t => ({
+    id: t.id, name: t.name, color: t.color,
+    playerIds: players.filter(p => p.teamId === t.id).map(p => p.id),
+  }));
+  renderTeEditor(players);
+  Q('teov').classList.add('open');
+}
+
+function closeTeEditor(e) {
+  if (e && e.target !== Q('teov')) return;
+  Q('teov').classList.remove('open');
+}
+
+function renderTeEditor(players) {
+  const allAssigned = new Set(G.te.flatMap(t => t.playerIds));
+  const unassigned  = players.filter(p => !allAssigned.has(p.id));
+
+  Q('tecont').innerHTML = G.te.map((team, ti) => {
+    const tps = team.playerIds.map(pid => players.find(p=>p.id===pid)).filter(Boolean);
+    const others = players.filter(p => !team.playerIds.includes(p.id));
+    return `<div class="teteam">
+      <div class="tehed">
+        <div class="tdot" style="background:${team.color}"></div>
+        <input class="tenm" value="${esc(team.name)}" oninput="G.te[${ti}].name=this.value" placeholder="Team name"/>
+      </div>
+      ${tps.map(p => `<div class="teprow">
+        <span style="font-size:.86rem;font-weight:600">${esc(p.name)}${p.id===G.pid?' (you)':''}</span>
+        <button class="btn bg bxs" onclick="teRm(${ti},'${p.id}')">Remove</button>
+      </div>`).join('')}
+      ${tps.length < 2 && others.length > 0 ? `
+        <div style="padding-top:6px">
+          <p class="tsm tm mb8">Add player:</p>
+          <select class="inp" style="padding:8px;font-size:.84rem" onchange="teAdd(${ti},this.value);this.value=''">
+            <option value="">— Select —</option>
+            ${others.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+          </select>
+        </div>` : ''}
+    </div>`;
+  }).join('') + (unassigned.length > 0 ? `
+    <div class="ubox">
+      <p class="tsm tm mb8">⚠️ Unassigned players:</p>
+      ${unassigned.map(p=>`<div class="pitem mb8"><span class="pname">${esc(p.name)}</span></div>`).join('')}
+    </div>` : '');
+}
+
+function teRm(ti, pid) {
+  G.te[ti].playerIds = G.te[ti].playerIds.filter(id=>id!==pid);
+  renderTeEditor(G.lob.players);
+}
+
+function teAdd(ti, pid) {
+  if (!pid) return;
+  G.te.forEach(t => { t.playerIds = t.playerIds.filter(id=>id!==pid); });
+  if (G.te[ti].playerIds.length < 2) G.te[ti].playerIds.push(pid);
+  renderTeEditor(G.lob.players);
+}
+
+function saveTeams() {
+  for (const t of G.te) {
+    if (t.playerIds.length !== 2) { toast(`${t.name} needs exactly 2 players`, 'er'); return; }
+  }
+  G.sk.emit('update_teams', { roomId: G.rid, teams: G.te }, res => {
+    if (res?.error) toast(res.error, 'er');
+    else { closeTeEditor(); toast('Teams saved! ✅', 'ok'); }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  END SCREEN
+// ═══════════════════════════════════════════════════════
+function buildEndScreen(data) {
+  const { teams, teamScores, winner, totalWordsPlayed } = data;
+  Q('ewnm').textContent = winner ? winner.name : "It's a tie!";
+  const totalCorr = Object.values(teamScores).reduce((s, t) => s + (t.correct||0), 0);
+  Q('stwords').textContent = totalWordsPlayed || 0;
+  Q('stcorr').textContent  = totalCorr;
+
+  const sorted = [...(teams||[])].sort((a,b) => (teamScores[b.id]?.score||0) - (teamScores[a.id]?.score||0));
+  const medals = ['🥇','🥈','🥉'];
+  Q('flist').innerHTML = sorted.map((t,i) => {
+    const sc = teamScores[t.id]||{};
+    const isW = winner && t.id === winner.id;
+    return `<div class="frow ${isW?'gd':''}" style="border-left-color:${t.color}">
+      <span class="frank">${medals[i]||i+1}</span>
+      <div class="col fx1" style="gap:1px;min-width:0">
+        <span class="fnm">${esc(t.name)}</span>
+        ${isW?'<span style="font-size:.68rem;color:var(--gd)">👑 WINNER</span>':''}
+      </div>
+      <div style="text-align:right">
+        <div class="fpts">${fmtPts(sc.score||0)} pts</div>
+        <div class="fcor">${sc.correct||0} correct</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  confetti(); // celebrate at the end!
+}
+
+function playAgain() {
+  clrSess();
+  G.pid=null;G.pnm=null;G.rid=null;G.rc=null;G.own=false;G.gs=null;G.pwd=null;
+  showScreen('sl');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CONFETTI
+// ═══════════════════════════════════════════════════════
+function confetti() {
+  const canvas = Q('cfetti');
+  canvas.style.display = 'block';
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const N = 90;
+  const COLORS = ['#a78bfa','#f0abfc','#fcd34d','#86efac','#93c5fd','#fb923c','#f472b6'];
+  const pieces = Array.from({length:N}, () => ({
+    x:     Math.random() * canvas.width,
+    y:     Math.random() * canvas.height - canvas.height,
+    w:     6 + Math.random() * 8,
+    h:     8 + Math.random() * 6,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    r:     Math.random() * Math.PI * 2,
+    dr:    (Math.random() - .5) * .15,
+    dy:    2.5 + Math.random() * 3.5,
+    dx:    (Math.random() - .5) * 1.5,
+  }));
+  let frame, done = false;
+  const tick = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let active = 0;
+    for (const p of pieces) {
+      p.y += p.dy; p.x += p.dx; p.r += p.dr;
+      if (p.y < canvas.height + 20) active++;
+      ctx.save();
+      ctx.translate(p.x + p.w/2, p.y + p.h/2);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    }
+    if (active > 0 && !done) frame = requestAnimationFrame(tick);
+    else { canvas.style.display = 'none'; cancelAnimationFrame(frame); }
+  };
+  cancelAnimationFrame(frame);
+  tick();
+  setTimeout(() => { done = true; canvas.style.display = 'none'; }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+function Q(id) { return document.getElementById(id); }
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function hrb(hex, a) {
+  const h = hex || '#7c3aed';
+  return `rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`;
+}
+
+function fmtPts(n) {
+  if (n === undefined || n === null) return '0';
+  return n % 1 === 0 ? String(n) : n.toFixed(1);
+}
+
+function myTeam(gs) {
+  return (gs.teams||[]).find(t => {
+    const r = gs.teamRoles?.[t.id];
+    return r && (r.hinterId === G.pid || r.guesserId === G.pid);
+  });
+}
+
+let _tt;
+function toast(msg, cls='') {
+  const el = Q('toast');
+  el.textContent = msg;
+  el.className = `on ${cls}`;
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.className = '', 3200);
+}
+
+function showCBar(cls, msg) {
+  const el = Q('cbar');
+  el.className = `on ${cls}`;
+  el.textContent = msg;
+}
+function hideCBar() { Q('cbar').className = ''; }
+
+function setErr(id, msg) { const e = Q(id); if(e) e.textContent = msg; }
+function clearErrs() { ['cre','jne'].forEach(id => { const e=Q(id); if(e) e.textContent=''; }); }
+
+function setLd(id, on, html) {
+  const el = Q(id);
+  if (!el) return;
+  el.disabled = on;
+  if (!on && html) el.innerHTML = html;
+  else if (on)     el.textContent = html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  PWA
+// ═══════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  // Attempt silent session reconnect
+  const sess = loadSess();
+  if (sess?.rid && sess?.rc) initSocket();
+
+  // iOS: scroll input into view when keyboard opens
+  document.addEventListener('focusin', e => {
+    if (e.target.tagName === 'INPUT') {
+      setTimeout(() => {
+        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 350);
+    }
+  });
+
+  // Prevent double-tap zoom on buttons (iOS)
+  document.addEventListener('touchend', e => {
+    if (e.target.closest('.btn, .codecard, .cpill, .cat-pill')) {
+      e.preventDefault();
+      e.target.closest('.btn, .codecard, .cpill, .cat-pill')?.click();
+    }
+  }, { passive: false });
+});
+</script>
+</body>
+</html>
